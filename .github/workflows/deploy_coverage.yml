@@ -1,0 +1,45 @@
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Setup Flutter and Melos with FVM
+        run: make ci
+
+      - name: Run unit tests
+        run: melos run test --no-select
+
+      - name: lcov
+        run: sudo apt-get update && sudo apt-get install -y lcov
+
+      - name: Generate coverage
+        run: sh scripts/open_coverage_page.sh
+
+      - uses: actions/upload-pages-artifact@v1
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1
